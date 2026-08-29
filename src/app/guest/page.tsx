@@ -11,7 +11,7 @@ import { GuestIdBar } from '@/components/ui/GuestId';
 import { Modal, useConfirmDelete } from '@/components/ui/Modal';
 import { EditableDesc, PageTitle } from '@/components/ui/PageText';
 import { useToast } from '@/components/ui/Toast';
-import { pushNotif } from '@/lib/notifStore';
+import { pushNotif, notifyAdmins } from '@/lib/notifStore';
 
 export default function GuestbookPage() {
   const { user, isAdmin } = useAuth();
@@ -49,14 +49,13 @@ export default function GuestbookPage() {
     setEntries([...entries, e]);
     setBody(''); setSecret(false); setGName('');
     toast('방명록이 등록되었습니다');
-    // 알림 (4.13) — 관리자에게 (본인 작성 제외)
-    if (user?.id !== 'admin') {
-      pushNotif({
-        type: 'guest', toUserId: 'admin', href: '/guest',
-        title: '방명록에 새 글이 달렸습니다',
-        body: `${e.author} — ${e.secret ? '비밀글' : e.body.slice(0, 50)}`,
-      });
-    }
+    // 알림 (4.13) — 관리자에게 (본인 제외는 notifyAdmins가 건다).
+    // 예전에는 받는 사람을 'admin'(목업 id)으로 적어 **서버 모드의 실제 관리자에게는 안 갔다** (v2.0)
+    notifyAdmins({
+      type: 'guest', href: '/guest',
+      title: '방명록에 새 글이 달렸습니다',
+      body: `${e.author} — ${e.secret ? '비밀글' : e.body.slice(0, 50)}`,
+    });
   };
 
   const canRead = (e: GuestEntry) => !e.secret || isAdmin || (e.authorId && e.authorId === user?.id);

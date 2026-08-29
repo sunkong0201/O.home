@@ -226,6 +226,17 @@ function RoadviewPageInner() {
       ? { ...base, author: guest.name, authorId: '' }
       : { ...base, author: user!.nickname, authorId: user!.id };
     setCmtRows([...cmtRows, c]);
+    // 답글이면 그 댓글 주인에게도 (v2.0 — 본인·그림 작성자와 겹치면 생략)
+    if (parentId) {
+      const target0 = items.find(it => it.id === id);
+      const parent = commentsFor(cmtRows, 'road', id, target0?.comments ?? []).find(x => x.id === parentId);
+      if (parent?.authorId && parent.authorId !== (user?.id ?? '') && parent.authorId !== target0?.authorId) {
+        pushNotif({
+          type: 'comment', toUserId: parent.authorId, href: '/loadb',
+          title: '내 댓글에 답글이 달렸습니다', body: c.author + ' — ' + text.slice(0, 50),
+        });
+      }
+    }
     // 알림 (4.13) — 그림 작성자에게 (본인 댓글 제외)
     const target = items.find(it => it.id === id);
     if (target && target.authorId && target.authorId !== (user?.id ?? '')) {

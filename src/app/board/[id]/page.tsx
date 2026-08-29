@@ -16,6 +16,7 @@ import { Modal, ConfirmModal } from '@/components/ui/Modal';
 import { GuestIdBar } from '@/components/ui/GuestId';
 import { useToast } from '@/components/ui/Toast';
 import { PageTitle } from '@/components/ui/PageText';
+import { pushNotif } from '@/lib/notifStore';
 
 const FOLD_LABEL = { spoiler: '스포일러 주의', adult: '수위 주의' };
 
@@ -88,6 +89,24 @@ export default function BoardDetailPage() {
       ? { ...base, target: 'post', targetId: post.id, author: user.nickname, authorId: user.id }
       : { ...base, target: 'post', targetId: post.id, author: gName.trim(), authorId: '' };
     setCmtRows([...cmtRows, c]);
+    /* 알림 (v2.0 포크 제보 — 「댓글을 달아도 알림이 안 와요」): 게시판 댓글은 여태 알림을
+       **만들지도 않았다** (로드비·방명록·역극만 있었다). 글쓴이에게, 답글이면 그 댓글 주인에게도. */
+    const me = user?.id ?? '';
+    if (post.authorId && post.authorId !== me) {
+      pushNotif({
+        type: 'comment', toUserId: post.authorId, href: `/board/${post.id}`,
+        title: `「${post.title}」에 새 댓글`, body: `${c.author} — ${c.text.slice(0, 50)}`,
+      });
+    }
+    if (replyTo) {
+      const parent = comments.find(x => x.id === replyTo);
+      if (parent?.authorId && parent.authorId !== me && parent.authorId !== post.authorId) {
+        pushNotif({
+          type: 'comment', toUserId: parent.authorId, href: `/board/${post.id}`,
+          title: '내 댓글에 답글이 달렸습니다', body: `${c.author} — ${c.text.slice(0, 50)}`,
+        });
+      }
+    }
     setCmt(''); setReplyTo(null);
   };
 
